@@ -1,0 +1,3 @@
+rootProject.name = 'gateway-service'
+
+include("config-server", "spring-cloud-mastery", "gateway-service", "user-service")

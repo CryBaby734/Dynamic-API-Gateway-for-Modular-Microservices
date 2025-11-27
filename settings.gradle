@@ -1,0 +1,13 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    plugins {
+        id "org.springframework.boot" version "3.3.2"
+        id "io.spring.dependency-management" version "1.1.5"
+    }
+}
+
+rootProject.name = "SpringCloudMastery"
+include("config-server", "spring-cloud-mastery", "gateway-service", "user-service","discovery-server")

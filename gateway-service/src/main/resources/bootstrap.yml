@@ -4,8 +4,4 @@ spring:
   cloud:
     config:
       uri: http://localhost:8888
-#  rabbitmq:
-#    host: localhost
-#    port: 5672
-#    username: guest
-#    password: guest
+      label: main

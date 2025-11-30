@@ -2,6 +2,7 @@ package org.example.gatewayservice.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
@@ -12,15 +13,13 @@ public class SecurityConfig {
 
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
-        http
+        return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .authorizeExchange(auth -> auth
-                        .pathMatchers("/api/auth/**").permitAll()
+                .authorizeExchange(exchange -> exchange
+                        .pathMatchers("/actuator/**").permitAll()   // <-- ОТКРЫВАЕМ GATEWAY ROUTES
                         .anyExchange().permitAll()
                 )
-                .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
-                .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
-        ;
-        return http.build();
+                .httpBasic(Customizer.withDefaults())
+                .build();
     }
 }

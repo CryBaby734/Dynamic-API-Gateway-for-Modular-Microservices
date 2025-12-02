@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.dynamicroutingcore.entity.RouteDefinitionEntity;
 import org.example.dynamicroutingcore.repository.RouteDefinitionRepository;
-import org.springframework.cloud.gateway.event.RefreshRoutesEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
@@ -30,7 +29,7 @@ public class RouteDefinitionService {
 
     public RouteDefinitionEntity create(RouteDefinitionEntity route){
         RouteDefinitionEntity saved = repository.save(route);
-        refreshGateway();
+//        refreshGateway();
         return saved;
     }
 
@@ -47,14 +46,14 @@ public class RouteDefinitionService {
 
 
         RouteDefinitionEntity updated = repository.save(existing);
-        refreshGateway();
+//        refreshGateway();
         return updated;
     }
 
 
     public void delete(UUID id){
         repository.deleteById(id);
-        refreshGateway();
+//        refreshGateway();
     }
 
     public void toggleEnabled(UUID id, boolean enabled){
@@ -64,12 +63,12 @@ public class RouteDefinitionService {
         route.setEnabled(enabled);
         repository.save(route);
 
-        refreshGateway();
+//        refreshGateway();
     }
 
-    public void refreshGateway(){
-        log.info("Publishing RefreshRoutesEvent....");
-        publisher.publishEvent(new RefreshRoutesEvent(this));
-    }
+//    public void refreshGateway(){
+//        log.info("Publishing RefreshRoutesEvent....");
+////        publisher.publishEvent(new RefreshRoutesEvent(this));
+//    }
 
 }

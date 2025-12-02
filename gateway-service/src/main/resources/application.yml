@@ -1,0 +1,51 @@
+#server:
+#  port: 8481
+#
+#spring:
+#  application:
+#    name: gateway-service
+#
+#  datasource:
+#    url: jdbc:postgresql://localhost:5432/dynamic_route
+#    username: postgres
+#    password: postgres
+#    driver-class-name: org.postgresql.Driver
+#
+#  jpa:
+#    hibernate:
+#      ddl-auto: none
+#    properties:
+#      hibernate:
+#        dialect: org.hibernate.dialect.PostgreSQLDialect
+#
+#  cloud:
+#    gateway:
+#      httpclient:
+#        connect-timeout: 2000
+#        response-timeout: 3s
+#
+#eureka:
+#  client:
+#    register-with-eureka: true
+#    fetch-registry: true
+#    service-url:
+#      defaultZone: http://localhost:8761/eureka
+#
+#  instance:
+#    hostname: localhost
+#    prefer-ip-address: false
+#    instance-id: ${spring.application.name}:${server.port}
+#
+#management:
+#  health:
+#    redis:
+#      enabled: false
+#  endpoints:
+#    web:
+#      exposure:
+#        include: "*"
+#
+#logging:
+#  level:
+#    root: INFO
+#    org.springframework.cloud.gateway: DEBUG

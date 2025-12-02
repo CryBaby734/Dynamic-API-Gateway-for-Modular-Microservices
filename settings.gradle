@@ -14,5 +14,5 @@ include(
         "user-service",
         "discovery-server",
         "account-service",
-        "routedefinition"
+        "dynamic-routing-core"
 )

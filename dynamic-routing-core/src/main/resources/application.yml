@@ -1,0 +1,26 @@
+server:
+  port: 8085   # можешь поменять, это просто пример
+
+spring:
+  application:
+    name: dynamic-routing-core
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/dynamic_route   # твоя БД
+    username: postgres
+    password: root7769
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update   # пока можно так, позже -> validate
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: true
+
+logging:
+  level:
+    org.example.dynamicroutingcore: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

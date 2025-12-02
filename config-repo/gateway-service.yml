@@ -10,8 +10,9 @@ spring:
       httpclient:
         connect-timeout: 2000
         response-timeout: 3s
+
       routes:
-        # === USER-SERVICE ===
+
         - id: user-service
           uri: lb://USER-SERVICE
           predicates:
@@ -23,9 +24,8 @@ spring:
                 name: userServiceCB
                 fallbackUri: forward:/fallback/users
 
-        # === AUTH-SERVICE ===
         - id: auth-service
-          uri: lb://SPRING-CLOUD-MASTERY
+          uri: lb://SPRING-CLOUD-MASTERY   # <-- исправь это имя!
           predicates:
             - Path=/api/auth/**
           filters:
@@ -35,34 +35,34 @@ spring:
                 name: authServiceCB
                 fallbackUri: forward:/fallback/auth
 
+        - id: account-service
+          uri: lb://ACCOUNT-SERVICE
+          predicates:
+            - Path=/api/accounts/**
+          filters:
+            - StripPrefix=1
+
 eureka:
   client:
     register-with-eureka: true
     fetch-registry: true
-    registry-fetch-interval-seconds: 5
     service-url:
       defaultZone: http://localhost:8761/eureka
+
   instance:
-    prefer-ip-address: true
+    hostname: localhost
+    prefer-ip-address: false
     instance-id: ${spring.application.name}:${server.port}
 
 management:
-  tracing:
-    sampling:
-      probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans
+  health:
+    redis:
+      enabled: false
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,refresh,trace,env
-  metrics:
-    tags:
-      application: ${spring.application.name}
+        include: "*"
 
 logging:
   level:
     root: INFO
-jwt:
-  secret: pouaiScyrJ8GnN5hlvUBjdf7JTQQI/Ws8CMDgLmH8fs=

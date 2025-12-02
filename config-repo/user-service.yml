@@ -25,21 +25,19 @@ eureka:
     fetch-registry: true
     service-url:
       defaultZone: http://localhost:8761/eureka
+
   instance:
-    prefer-ip-address: true
+    hostname: localhost        # 🔥 ОБЯЗАТЕЛЬНО
+    prefer-ip-address: false   # 🔥 ОБЯЗАТЕЛЬНО
     instance-id: ${spring.application.name}:${server.port}
 
 management:
   tracing:
     sampling:
-      probability: 1.0  # 1.0 = трассировать все запросы (для dev)
+      probability: 1.0
   zipkin:
     tracing:
       endpoint: http://localhost:9411/api/v2/spans
   endpoints:
     web:
-      exposure:
-        include: health,info,metrics,prometheus,refresh,trace,env
-  metrics:
-    tags:
-      application: ${spring.application.name}
+      exposure

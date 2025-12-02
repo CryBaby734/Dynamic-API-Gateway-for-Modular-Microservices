@@ -13,5 +13,6 @@ include(
         "gateway-service",
         "user-service",
         "discovery-server",
-        "account-service"
+        "account-service",
+        "routedefinition"
 )

@@ -3,10 +3,13 @@ package org.example.dynamicroutingcore.controller;
 
 
 import lombok.RequiredArgsConstructor;
+import org.example.dynamicroutingcore.dto.RouteDefinitionDto;
 import org.example.dynamicroutingcore.dto.RouteRequest;
 import org.example.dynamicroutingcore.dto.RouteResponse;
 import org.example.dynamicroutingcore.mapper.RouteMapper;
 import org.example.dynamicroutingcore.service.RouteDefinitionService;
+
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,14 +43,14 @@ public class RouteDefinitionController {
 
     @PostMapping
     public ResponseEntity<RouteResponse> create(@RequestBody RouteRequest request) {
-        var entity = service.create(RouteMapper.toEntity(request));
+        var entity = service.create(request);
         return ResponseEntity.ok(RouteMapper.toResponse(entity));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<RouteResponse> update (@PathVariable UUID id,
                                                  @RequestBody RouteRequest request){
-        var entity = service.update(id, RouteMapper.toEntity(request));
+        var entity = service.update(id, request);
         return ResponseEntity.ok(RouteMapper.toResponse(entity));
     }
 
@@ -62,4 +65,13 @@ public class RouteDefinitionController {
         service.toggleEnabled(id, enabled);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/definitions")
+    public List<RouteDefinitionDto> getDefinitions() {
+        return service.getActiveRoutes().stream()
+                .map(RouteMapper::toDto)
+                .toList();
+    }
+
+
 }

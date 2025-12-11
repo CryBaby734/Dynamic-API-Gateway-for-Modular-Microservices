@@ -1,9 +1,11 @@
 package org.example.dynamicroutingcore.mapper;
 
+
+import org.example.dynamicroutingcore.dto.RouteDefinitionDto;
 import org.example.dynamicroutingcore.dto.RouteRequest;
 import org.example.dynamicroutingcore.dto.RouteResponse;
-import org.example.dynamicroutingcore.entity.FilterDefinition;
-import org.example.dynamicroutingcore.entity.PredicateDefinition;
+import org.example.dynamicroutingcore.entity.FilterConfig;
+import org.example.dynamicroutingcore.entity.PredicateConfig;
 import org.example.dynamicroutingcore.entity.RouteDefinitionEntity;
 
 import java.util.stream.Collectors;
@@ -17,10 +19,10 @@ public class RouteMapper {
                 .routeId(request.getRouteId())
                 .uri(request.getUri())
                 .predicates(request.getPredicates().stream()
-                        .map(p -> new PredicateDefinition(p.getName(), p.getArgs()))
+                        .map(p -> new PredicateConfig(p.getName(), p.getArgs()))
                         .collect(Collectors.toList()))
                 .filters(request.getFilters().stream()
-                        .map(f -> new FilterDefinition(f.getName(),f.getArgs()))
+                        .map(f -> new FilterConfig(f.getName(),f.getArgs()))
                         .collect(Collectors.toList()))
                 .routeOrder(request.getRouteOrder())
                 .enabled(request.getEnabled())
@@ -48,4 +50,22 @@ public class RouteMapper {
                         .build();
 
     }
+
+    public static RouteDefinitionDto toDto(RouteDefinitionEntity entity) {
+        return  new RouteDefinitionDto(
+                entity.getId(),
+                entity.getRouteId(),
+                entity.getUri(),
+                entity.getPredicates().stream()
+                        .map(p -> new RouteDefinitionDto.PredicateDto(p.getName(), p.getArgs()))
+                        .toList(),
+                entity.getFilters().stream()
+                        .map(f -> new RouteDefinitionDto.FilterDto(f.getName(), f.getArgs()))
+                        .toList(),
+                entity.getRouteOrder(),
+                entity.getEnabled()
+        );
+    }
+
+
 }

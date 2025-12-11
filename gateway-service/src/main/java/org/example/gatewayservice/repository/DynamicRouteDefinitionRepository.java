@@ -1,7 +1,5 @@
 package org.example.gatewayservice.repository;
 
-
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.gatewayservice.service.DynamicRouteService;
@@ -17,7 +15,6 @@ import reactor.core.publisher.Mono;
 public class DynamicRouteDefinitionRepository implements RouteDefinitionRepository {
 
     private final DynamicRouteService dynamicRouteService;
-
 
     @Override
     public Flux<RouteDefinition> getRouteDefinitions() {

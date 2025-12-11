@@ -2,6 +2,7 @@ package org.example.dynamicroutingcore.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -32,11 +33,11 @@ public class RouteDefinitionEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
-    private List<PredicateDefinition> predicates;
+    private List<PredicateConfig> predicates;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
-    private List<FilterDefinition> filters;
+    private List<FilterConfig> filters;
 
     @Column(name = "route_order")
     private Integer routeOrder;

@@ -10,7 +10,7 @@ public class WebClientConfig {
     @Bean
     public WebClient routeWebClient(WebClient.Builder builder) {
         return builder
-                .baseUrl("http://localhost:8085/api/routes")
+                .baseUrl("http://localhost:8085/routes")
                 .build();
     }
 }

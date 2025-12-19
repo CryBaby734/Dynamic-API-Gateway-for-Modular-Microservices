@@ -3,6 +3,7 @@ package org.example.dynamicroutingcore.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import org.example.dynamicroutingcore.dto.RouteRequest;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -62,4 +63,19 @@ public class RouteDefinitionEntity {
     public void preUpdate() {
         this.updatedAt = OffsetDateTime.now();
     }
+
+
+    public void updateFrom(RouteRequest request) {
+        this.routeId = request.getRouteId();
+        this.uri = request.getUri();
+        this.routeOrder = request.getRouteOrder();
+        this.enabled = request.getEnabled();
+        this.predicates = request.getPredicates().stream()
+                .map(p -> new PredicateConfig(p.getName(), p.getArgs()))
+                .toList();
+        this.filters = request.getFilters().stream()
+                .map(f -> new FilterConfig(f.getName(),f.getArgs()))
+                .toList();
+    }
+
 }

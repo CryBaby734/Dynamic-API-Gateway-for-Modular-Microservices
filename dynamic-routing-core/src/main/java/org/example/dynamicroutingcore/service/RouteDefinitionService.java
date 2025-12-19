@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.example.dynamicroutingcore.dto.RouteRequest;
 import org.example.dynamicroutingcore.entity.RouteDefinitionEntity;
+import org.example.dynamicroutingcore.event.RouteChangedEvent;
+import org.example.dynamicroutingcore.event.RouteEventType;
 import org.example.dynamicroutingcore.mapper.RouteMapper;
 import org.example.dynamicroutingcore.repository.RouteDefinitionRepository;
 import org.example.dynamicroutingcore.validator.RouteValidator;
@@ -23,23 +25,27 @@ import java.util.UUID;
 @Slf4j
 public class RouteDefinitionService {
 
-    private final RouteDefinitionRepository repository;
-    private final ApplicationEventPublisher publisher;
-    private final RouteValidator routeValidator;
 
-    public List<RouteDefinitionEntity> getAllRoutes(){
+    private final RouteDefinitionRepository repository;
+    private final RouteValidator routeValidator;
+    private final RouteEventProducer routeEventProducer;
+
+    public List<RouteDefinitionEntity> getAllRoutes() {
         return repository.findAll();
     }
 
-    public List<RouteDefinitionEntity> getActiveRoutes(){
+    public List<RouteDefinitionEntity> getActiveRoutes() {
         return repository.findAllByEnabledTrueOrderByRouteOrderAsc();
     }
 
-    public RouteDefinitionEntity create(RouteRequest request){
+    public RouteDefinitionEntity create(RouteRequest request) {
         routeValidator.validate(request);
-        RouteDefinitionEntity entity = RouteMapper.toEntity(request);
 
-        return repository.save(entity);
+        RouteDefinitionEntity saved =
+                repository.save(RouteMapper.toEntity(request));
+
+        publish(RouteEventType.ROUTE_CREATED, saved);
+        return saved;
     }
 
     public RouteDefinitionEntity update(UUID id, RouteRequest request) {
@@ -47,16 +53,25 @@ public class RouteDefinitionService {
                 .orElseThrow(() -> new RuntimeException("Route does not exist " + id));
 
         routeValidator.validate(request);
+        existing.updateFrom(request);
 
-        RouteDefinitionEntity updated = RouteMapper.toEntity(request);
-        updated.setId(id);
-        return repository.save(updated);
+        RouteDefinitionEntity saved = repository.save(existing);
+        publish(RouteEventType.ROUTE_UPDATED, saved);
+
+        return saved;
     }
 
+    public void delete(UUID id) {
+        RouteDefinitionEntity route = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Route does not exist " + id));
 
-    public void delete(UUID id){
-        repository.deleteById(id);
-//        refreshGateway();
+        repository.delete(route);
+        routeEventProducer.publish(
+                RouteChangedEvent.builder()
+                        .eventType(RouteEventType.ROUTE_DELETED)
+                        .routeId(route.getRouteId().toString())
+                        .build()
+        );
     }
 
     public void toggleEnabled(UUID id, boolean enabled) {
@@ -66,58 +81,22 @@ public class RouteDefinitionService {
         route.setEnabled(enabled);
         repository.save(route);
 
+        routeEventProducer.publish(
+                RouteChangedEvent.builder()
+                        .eventType(enabled
+                                ? RouteEventType.ROUTE_ENABLED
+                                : RouteEventType.ROUTE_DISABLED)
+                        .routeId(route.getRouteId().toString())
+                        .build()
+        );
     }
-//        public RouteDefinition toSpringRouteDefinition(RouteDefinitionDto dto) {
-//            RouteDefinition rd = new RouteDefinition();
-//            rd.setId(dto.routeId());
-//            rd.setUri(URI.create(dto.uri()));
-//            rd.setOrder(dto.routeOrder() == null ? 0 : dto.routeOrder());
-////Predicates
-//            List<org.springframework.cloud.gateway.handler.predicate.PredicateDefinition> predicateDefs =
-//                    dto.predicates().stream()
-//                            .map(p -> {
-//                                var pd = new org.springframework.cloud.gateway.handler.predicate.PredicateDefinition();
-//                                pd.setName(p.getName());
-//                                pd.setArgs(p.getArgs());
-//                                return pd;
-//                            })
-//                            .toList();
-//
-//            rd.setPredicates(predicateDefs);
-//
-//
-//            List<org.springframework.cloud.gateway.filter.FilterDefinition> filterDefs =
-//                    dto.filters().stream()
-//                            .map(f -> {
-//                                var fd = new org.springframework.cloud.gateway.filter.FilterDefinition();
-//                                fd.setName(f.getName());
-//                                fd.setArgs(f.getArgs());
-//                                return fd;
-//                            }).toList();
-//
-//            rd.setFilters(filterDefs);
-//            return rd;
-//        }
-//
-//
-//        public List<RouteDefinition> getSpringRouteDefinitions() {
-//        return getActiveRoutes().stream()
-//                .map(RouteMapper::toDto)
-//                .map(this::toSpringRouteDefinition)
-//                .toList();
-//        }
 
-
-
-
-
-
-//        refreshGateway();
-
-
-//    public void refreshGateway(){
-//        log.info("Publishing RefreshRoutesEvent....");
-////        publisher.publishEvent(new RefreshRoutesEvent(this));
-//    }
-
+    private void publish(RouteEventType type, RouteDefinitionEntity route) {
+        routeEventProducer.publish(
+                RouteChangedEvent.builder()
+                        .eventType(type)
+                        .routeId(route.getRouteId().toString())
+                        .build()
+        );
+    }
 }

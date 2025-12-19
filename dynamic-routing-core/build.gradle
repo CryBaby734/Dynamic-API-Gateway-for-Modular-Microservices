@@ -31,7 +31,7 @@ dependencies {
 
     // JSONB support for Hibernate 6
 
-
+    implementation 'org.springframework.kafka:spring-kafka'
 
     // PostgreSQL driver
     runtimeOnly 'org.postgresql:postgresql'

@@ -9,6 +9,7 @@ import org.example.dynamicroutingcore.entity.RouteDefinitionEntity;
 import org.example.dynamicroutingcore.event.RouteChangedEvent;
 import org.example.dynamicroutingcore.event.RouteEventType;
 import org.example.dynamicroutingcore.mapper.RouteMapper;
+import org.example.dynamicroutingcore.observability.RouteLifecycleMetrics;
 import org.example.dynamicroutingcore.repository.RouteDefinitionRepository;
 import org.example.dynamicroutingcore.validator.RouteValidator;
 
@@ -29,6 +30,7 @@ public class RouteDefinitionService {
     private final RouteDefinitionRepository repository;
     private final RouteValidator routeValidator;
     private final RouteEventProducer routeEventProducer;
+    private final RouteLifecycleMetrics routeLifecycleMetrics;
 
     public List<RouteDefinitionEntity> getAllRoutes() {
         return repository.findAll();
@@ -43,6 +45,7 @@ public class RouteDefinitionService {
 
         RouteDefinitionEntity saved =
                 repository.save(RouteMapper.toEntity(request));
+        routeLifecycleMetrics.increment("created", saved.getRouteId().toString());
 
         publish(RouteEventType.ROUTE_CREATED, saved);
         return saved;
@@ -56,6 +59,7 @@ public class RouteDefinitionService {
         existing.updateFrom(request);
 
         RouteDefinitionEntity saved = repository.save(existing);
+        routeLifecycleMetrics.increment("updated", saved.getRouteId().toString());
         publish(RouteEventType.ROUTE_UPDATED, saved);
 
         return saved;
@@ -66,6 +70,7 @@ public class RouteDefinitionService {
                 .orElseThrow(() -> new RuntimeException("Route does not exist " + id));
 
         repository.delete(route);
+        routeLifecycleMetrics.increment("deleted", route.getRouteId().toString());
         routeEventProducer.publish(
                 RouteChangedEvent.builder()
                         .eventType(RouteEventType.ROUTE_DELETED)
@@ -80,6 +85,7 @@ public class RouteDefinitionService {
 
         route.setEnabled(enabled);
         repository.save(route);
+        routeLifecycleMetrics.increment(enabled ? "enabled" : "disabled",route.getRouteId().toString());
 
         routeEventProducer.publish(
                 RouteChangedEvent.builder()
@@ -99,4 +105,14 @@ public class RouteDefinitionService {
                         .build()
         );
     }
+
+    public int countActiveRoutes() {
+        return repository.countByEnabledTrue();
+    }
+
+    public int countDisabledRoutes() {
+        return repository.countByEnabledFalse();
+    }
+
+
 }

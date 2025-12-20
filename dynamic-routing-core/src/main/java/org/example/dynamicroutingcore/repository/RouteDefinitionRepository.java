@@ -9,4 +9,8 @@ import java.util.UUID;
 public interface RouteDefinitionRepository extends JpaRepository<RouteDefinitionEntity, UUID> {
 
     List<RouteDefinitionEntity> findAllByEnabledTrueOrderByRouteOrderAsc();
+
+    int countByEnabledTrue();
+
+    int countByEnabledFalse();
 }

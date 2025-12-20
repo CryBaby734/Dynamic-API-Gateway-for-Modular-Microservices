@@ -1,34 +1,59 @@
 server:
-  port: 8085   # можешь поменять, это просто пример
+  port: 8085
 
 spring:
   application:
     name: dynamic-routing-core
+
   kafka:
     bootstrap-servers: localhost:9092
-
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       acks: all
       retries: 3
-
     properties:
       spring.json.add.type.headers: false
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/dynamic_route   # твоя БД
+    url: jdbc:postgresql://localhost:5432/dynamic_route
     username: postgres
     password: root7769
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update   # пока можно так, позже -> validate
+      ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
         format_sql: true
-    show-sql: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - prometheus
+
+  metrics:
+    tags:
+      application: dynamic-routing-core
+
+  tracing:
+    sampling:
+      probability: 1.0
+
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
 
 logging:
   level:

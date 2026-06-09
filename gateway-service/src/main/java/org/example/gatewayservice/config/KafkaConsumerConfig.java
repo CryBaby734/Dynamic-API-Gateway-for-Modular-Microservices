@@ -24,7 +24,8 @@ public class KafkaConsumerConfig {
     public ConsumerFactory<String, RouteChangedEvent> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
 
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        String servers = System.getenv("SPRING_KAFKA_BOOTSTRAP_SERVERS") != null ? System.getenv("SPRING_KAFKA_BOOTSTRAP_SERVERS") : "localhost:9092";
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "gateway-service");
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 

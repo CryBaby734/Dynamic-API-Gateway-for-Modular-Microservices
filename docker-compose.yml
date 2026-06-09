@@ -1,15 +1,51 @@
-version: "3.8"
+version: '3.8'
 
 services:
+  # =========================================================================
+  # INFRASTRUCTURE SERVICES
+  # =========================================================================
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root7769
+    volumes:
+      - ./postgres-init:/docker-entrypoint-initdb.d
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "15432:5432"
+    networks:
+      - spring-cloud-net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "16379:6379"
+    networks:
+      - spring-cloud-net
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
+    container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    networks:
+      - spring-cloud-net
 
   kafka:
     image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka
     depends_on:
       - zookeeper
     ports:
@@ -17,6 +53,222 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - spring-cloud-net
+    healthcheck:
+      test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "kafka:9092" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - spring-cloud-net
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - spring-cloud-net
+
+  # =========================================================================
+  # MICROSERVICES
+  # =========================================================================
+
+  config-server:
+    build:
+      context: .
+      dockerfile: config-server/Dockerfile
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    depends_on:
+      - rabbitmq
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitmq
+      EUREKA_INSTANCE_HOSTNAME: config-server
+    networks:
+      - spring-cloud-net
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8888/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  discovery-server:
+    build:
+      context: .
+      dockerfile: discovery-server/Dockerfile
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+    depends_on:
+      config-server:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_ZIPKIN_BASE_URL: http://zipkin:9411
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_INSTANCE_HOSTNAME: discovery-server
+    networks:
+      - spring-cloud-net
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  gateway-service:
+    build:
+      context: .
+      dockerfile: gateway-service/Dockerfile
+    container_name: gateway-service
+    ports:
+      - "8481:8481"
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_ZIPKIN_BASE_URL: http://zipkin:9411
+      CONFIG_SERVER_URL: http://config-server:8888
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
+      EUREKA_INSTANCE_HOSTNAME: gateway-service
+      REDIS_HOST: redis
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      DYNAMIC_ROUTING_URL: http://dynamic-routing-core:8085/routes
+    networks:
+      - spring-cloud-net
+
+  auth-service:
+    # spring-cloud-mastery module
+    build:
+      context: .
+      dockerfile: spring-cloud-mastery/Dockerfile
+    container_name: auth-service
+    ports:
+      - "18080:8080"
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/cloud_auth_db
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_ZIPKIN_BASE_URL: http://zipkin:9411
+      DB_USER: postgres
+      DB_PASS: root7769
+      CONFIG_SERVER_URL: http://config-server:8888
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
+      EUREKA_INSTANCE_HOSTNAME: auth-service
+      DB_HOST: postgres
+      REDIS_HOST: redis
+    networks:
+      - spring-cloud-net
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: user-service
+    ports:
+      - "18082:8082"
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888/"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/cloud_user_db
+      SPRING_ZIPKIN_BASE_URL: http://zipkin:9411
+      DB_USER: postgres
+      DB_PASS: root7769
+      CONFIG_SERVER_URL: http://config-server:8888
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
+      EUREKA_INSTANCE_HOSTNAME: user-service
+      DB_HOST: postgres
+    networks:
+      - spring-cloud-net
+
+  account-service:
+    build:
+      context: .
+      dockerfile: account-service/Dockerfile
+    container_name: account-service
+    ports:
+      - "8090:8090"
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/account_db
+      EUREKA_INSTANCE_HOSTNAME: account-service
+      DB_HOST: postgres
+    networks:
+      - spring-cloud-net
+
+  dynamic-routing-core:
+    build:
+      context: .
+      dockerfile: dynamic-routing-core/Dockerfile
+    container_name: dynamic-routing-core
+    ports:
+      - "8085:8085"
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/dynamic_route
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_ZIPKIN_BASE_URL: http://zipkin:9411
+      ZIPKIN_URL: http://zipkin:9411/api/v2/spans
+      EUREKA_INSTANCE_HOSTNAME: dynamic-routing-core
+      DB_HOST: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    networks:
+      - spring-cloud-net
+
+networks:
+  spring-cloud-net:
+    name: spring-cloud-net
+    external: true
+
+volumes:
+  postgres-data:

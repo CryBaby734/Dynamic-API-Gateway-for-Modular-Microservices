@@ -20,7 +20,8 @@ public class KafkaProducerConfig {
     public ProducerFactory<String, RouteChangedEvent> producerFactory() {
         Map<String, Object> props = new HashMap<>();
 
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        String servers = System.getenv("SPRING_KAFKA_BOOTSTRAP_SERVERS") != null ? System.getenv("SPRING_KAFKA_BOOTSTRAP_SERVERS") : "localhost:9092";
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         props.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);

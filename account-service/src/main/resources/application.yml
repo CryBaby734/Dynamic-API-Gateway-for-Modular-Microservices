@@ -6,7 +6,7 @@ spring:
     name: account-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/account_db
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/account_db
     username: postgres
     password: root7769
     driver-class-name: org.postgresql.Driver
@@ -24,7 +24,7 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}

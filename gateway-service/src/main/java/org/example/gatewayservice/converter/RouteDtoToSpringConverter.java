@@ -20,18 +20,17 @@ public class RouteDtoToSpringConverter {
         rd.setId(dto.routeId());
         rd.setUri(URI.create(dto.uri()));
         rd.setOrder(dto.routeOrder() == null ? 0 : dto.routeOrder());
+        rd.getMetadata().put("enabled", dto.enabled());
 
         rd.setPredicates(
                 dto.predicates().stream()
                         .map(this::convertPredicate)
-                        .toList()
-        );
+                        .toList());
 
         rd.setFilters(
                 dto.filters().stream()
                         .map(this::convertFilter)
-                        .toList()
-        );
+                        .toList());
 
         return rd;
     }

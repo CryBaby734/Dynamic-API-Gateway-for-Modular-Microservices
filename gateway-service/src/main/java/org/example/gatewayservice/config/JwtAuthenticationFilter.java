@@ -19,7 +19,7 @@ import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
-public class JwtAuthenticationFilter implements GlobalFilter, Ordered{
+public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final BlacklistService blacklistService;
@@ -29,10 +29,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered{
         return -100;
     }
 
-
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-
 
         if (HttpMethod.OPTIONS.equals(exchange.getRequest().getMethod())) {
             return chain.filter(exchange);
@@ -42,16 +40,14 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered{
         String path = exchange.getRequest().getURI().getPath();
 
         @SuppressWarnings("unchecked")
-        Set<URI> originalUris =
-                exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ORIGINAL_REQUEST_URL_ATTR);
+        Set<URI> originalUris = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ORIGINAL_REQUEST_URL_ATTR);
 
         if (originalUris != null && !originalUris.isEmpty()) {
             path = originalUris.iterator().next().getPath();
         }
 
-
         // 2. Разрешаем эндпоинты авторизации без токена
-        if (path.startsWith("/api/auth/") || path.startsWith("/auth/")) {
+        if (path.startsWith("/api/auth/") || path.startsWith("/auth/") || path.equals("/api/services")) {
             return chain.filter(exchange);
         }
 
@@ -77,7 +73,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered{
 
         Claims claims = jwtTokenProvider.getClaims(token);
         String role = (String) claims.get("role");
-        if(path.startsWith("/api/admin/")){
+        if (path.startsWith("/api/admin/")) {
             if (!"ADMIN".equals(role)) {
                 exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
                 return exchange.getResponse().setComplete();
@@ -85,8 +81,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered{
         }
         System.out.println("✅ Authenticated user: " + claims.getSubject() + " | Role: " + claims.get("role"));
         return chain.filter(exchange);
-
-
 
     }
 }
